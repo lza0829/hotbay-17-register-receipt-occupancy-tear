@@ -62,6 +62,3 @@ def write_register_audit(conn, *, part_key, vault_id, vault_name, tier,
     )
     return cur.lastrowid
 
-def surface_register_hint(part_key: str) -> dict:
-    return {"part_key": part_key, "panel": "register"}
-

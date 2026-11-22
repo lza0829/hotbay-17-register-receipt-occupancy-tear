@@ -1,5 +1,6 @@
 from __future__ import annotations
 import sqlite3
+import time
 from contextlib import contextmanager
 from app.config import DB_PATH
 
@@ -105,6 +106,25 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+BUSY_TIMEOUT_MS = 10000
+_BEGIN_DEADLINE_S = 60.0
+
+
+def _begin_immediate(conn: sqlite3.Connection) -> None:
+    """取库级写锁。SQLite 的 busy_timeout 在极端并发下会让个别 waiter 饿过
+    时限抛出 database is locked；此时尚未写入任何行，重试是安全的。
+    用总时限兜底，超时仍失败则原样抛出（调用方整笔无落库）。"""
+    deadline = time.monotonic() + _BEGIN_DEADLINE_S
+    while True:
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            return
+        except sqlite3.OperationalError as e:
+            if "locked" not in str(e).lower() or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.01)
+
+
 @contextmanager
 def db(immediate: bool = False):
     """单事务上下文：提交或整体回滚，不存在半截写入。
@@ -114,7 +134,10 @@ def db(immediate: bool = False):
     """
     conn = connect()
     try:
-        conn.execute("BEGIN IMMEDIATE" if immediate else "BEGIN")
+        if immediate:
+            _begin_immediate(conn)
+        else:
+            conn.execute("BEGIN")
         yield conn
         conn.commit()
     except Exception:

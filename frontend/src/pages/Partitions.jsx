@@ -35,6 +35,12 @@ export default function Partitions() {
         object_prefix: form.object_prefix,
         clips: [{ object_key: form.clip_key || `${form.object_prefix}seg-01.bin`, bytes: Number(form.clip_bytes), note: form.clip_note }],
       })
+      // 成功灯必须与占用证据同刷：证据不可重放则不得显示成功。
+      if (r.证据 && !r.证据.可重放) {
+        setErrMsg(`登记未成立：${r.证据.缺口}`)
+        reload()
+        return
+      }
       setReceipt(r)
       setMsg(`登记成功 · ${r.vault_name} 在册 ${r.占用后}/${r.额定}`)
       reload()
@@ -77,10 +83,15 @@ export default function Partitions() {
       )}
       <div className="table-wrap">
         <table>
-          <thead><tr><th>分区键</th><th>片名</th><th>温层</th><th>片库间</th><th>段数</th><th>状态</th></tr></thead>
+          <thead><tr><th>分区键</th><th>片名</th><th>温层</th><th>片库间</th><th>段数</th><th>状态</th><th>证据</th></tr></thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.id}><td>{r.part_key}</td><td>{r.title}</td><td>{r.tier}</td><td>{r.vault_name}</td><td>{r.clip_count}</td><td>{r.status}</td></tr>
+              <tr key={r.id}>
+                <td>{r.part_key}</td><td>{r.title}</td><td>{r.tier}</td><td>{r.vault_name}</td><td>{r.clip_count}</td><td>{r.status}</td>
+                <td>{r.证据可重放
+                  ? <span className="pill ok">四侧齐</span>
+                  : <span className="pill bad" title={r.证据缺口}>{r.证据缺口}</span>}</td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -96,9 +107,13 @@ export default function Partitions() {
                 <td>{a.part_key}</td>
                 <td>{a.vault_name ?? '—'}</td>
                 <td>{a.tier}</td>
-                <td>{a.result === '成功' ? <span className="pill ok">成功</span> : <span className="pill bad">失败</span>}</td>
+                <td>{a.result === '成功'
+                  ? <span className="pill ok">成功</span>
+                  : a.result === '回退'
+                    ? <span className="pill bad" title={a.缺口}>回退</span>
+                    : <span className="pill bad">失败</span>}</td>
                 <td>{a.used_before == null ? '—' : `${a.used_before}→${a.used_after}/${a.capacity}`}</td>
-                <td>{a.reason || '—'}</td>
+                <td>{a.缺口 || a.reason || '—'}</td>
                 <td>{a.created_at}</td>
               </tr>
             ))}

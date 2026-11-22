@@ -20,6 +20,7 @@ export default function Vaults() {
                 : v.是否满容
                   ? <span className="pill bad">满容</span>
                   : <span className="pill ok">可登记</span>}
+              {v.登记缺口 > 0 && <span className="pill bad">登记缺口 {v.登记缺口}</span>}
             </p>
           </article>
         ))}

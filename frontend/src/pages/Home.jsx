@@ -7,9 +7,9 @@ export default function Home() {
   useEffect(() => { api.overview().then(setO).catch(e => setErr(e.message)) }, [])
   if (err) return <p className="err">{err}</p>
   if (!o) return <p className="muted">加载总览…</p>
-  const _ok = o && o.surface_ok;
+  // 在册计数条只认占用谓词重放结果，不接受任何旁路成功面覆盖。
   const cards = [
-    ['热档', _ok ? (o.surface_热档 ?? o.热档) : o.热档], ['温档', _ok ? (o.surface_温档 ?? o.温档) : o.温档], ['冷档', _ok ? (o.surface_冷档 ?? o.冷档) : o.冷档],
+    ['热档', o.热档], ['温档', o.温档], ['冷档', o.冷档],
     ['迁移执行中', o.迁移执行中], ['待销毁候选', o.待销毁候选], ['目录对象', o.目录对象],
   ]
   return (
@@ -24,6 +24,17 @@ export default function Home() {
           <div className="stat" key={k}><span>{k}</span><strong>{v}</strong></div>
         ))}
       </div>
+      {o.登记缺口 > 0 && (
+        <section className="panel">
+          <h2>登记缺口 <span className="pill bad">{o.登记缺口}</span></h2>
+          <p className="muted">以下成功单号证据不成立（册行∪素材段∪目录键∪占用未同命运），已回退成功宣称：</p>
+          <ul className="plain">
+            {o.缺口明细.map(g => (
+              <li key={g.audit_id}>单号 {g.audit_id} · {g.part_key} · {g.vault_name || '—'} · {g.缺口}</li>
+            ))}
+          </ul>
+        </section>
+      )}
       <section className="panel">
         <h2>片库间</h2>
         <ul className="plain">

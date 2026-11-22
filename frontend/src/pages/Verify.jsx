@@ -4,9 +4,14 @@ import { api } from '../api'
 export default function Verify() {
   const [inv, setInv] = useState([])
   const [runs, setRuns] = useState([])
+  const [gaps, setGaps] = useState([])
   const [last, setLast] = useState(null)
   const [msg, setMsg] = useState('')
-  const reload = () => { api.inventory().then(setInv); api.verifyRuns().then(setRuns) }
+  const reload = () => {
+    api.inventory().then(setInv)
+    api.verifyRuns().then(setRuns)
+    api.overview().then(o => setGaps(o.缺口明细 || []))
+  }
   useEffect(() => { reload() }, [])
   async function run() {
     setMsg('')
@@ -25,6 +30,14 @@ export default function Verify() {
       {msg && <p className="msg">{msg}</p>}
       {last && last.drifts?.length > 0 && (
         <ul className="plain">{last.drifts.map((d, i) => <li key={i}>{d.对象键} · {d.问题}</li>)}</ul>
+      )}
+      {gaps.length > 0 && (
+        <section className="panel">
+          <h2>登记缺口 <span className="pill bad">{gaps.length}</span></h2>
+          <ul className="plain">
+            {gaps.map(g => <li key={g.audit_id}>单号 {g.audit_id} · {g.part_key} · {g.缺口}</li>)}
+          </ul>
+        </section>
       )}
       <h2>目录清单</h2>
       <div className="table-wrap">
